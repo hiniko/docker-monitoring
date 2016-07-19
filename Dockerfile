@@ -11,8 +11,12 @@ RUN     apt-get -y update
 RUN     apt-get -y install software-properties-common
 RUN     add-apt-repository -y ppa:chris-lea/node.js
 RUN     apt-get -y update
-RUN     apt-get -y install python-django-tagging python-simplejson python-memcache python-ldap python-cairo python-pysqlite2 python-support \
-                           python-pip gunicorn supervisor nginx-light nodejs git wget curl openjdk-7-jre build-essential python-dev
+RUN     apt-get -y install python-django-tagging python-simplejson python-memcache \
+            python-ldap python-cairo python-pysqlite2 python-support \
+            python-pip gunicorn supervisor nginx-light nodejs git wget curl \
+            openjdk-7-jre build-essential python-dev build-essential \
+            libcurl4-gnutls-dev libmysqlclient-dev libhiredis-dev liboping-dev \
+            libyajl-dev libpq-dev
 
 RUN     pip install Twisted==11.1.0
 RUN     pip install Django==1.5
@@ -38,17 +42,25 @@ RUN     git clone https://github.com/graphite-project/graphite-web.git /src/grap
         python setup.py install
 
 # Install StatsD
-RUN     git clone https://github.com/etsy/statsd.git /src/statsd                                                                        &&\
-        cd /src/statsd                                                                                                                  &&\
-        git checkout v0.8.0
-
+RUN     git clone https://github.com/etsy/statsd.git /src/statsd                          &&\ 
+        cd /src/statsd                                                                    &&\
+        git checkout v0.8.0 
 
 # Install Grafana
-RUN     mkdir /src/grafana                                                                                    &&\
-        mkdir /opt/grafana                                                                                    &&\
-        wget https://grafanarel.s3.amazonaws.com/builds/grafana-3.1.0-1468321182.linux-x64.tar.gz -O /src/grafana.tar.gz &&\
-        tar -xzf /src/grafana.tar.gz -C /opt/grafana --strip-components=1                                     &&\
+RUN     mkdir /src/grafana                                                                &&\
+        mkdir /opt/grafana                                                                &&\
+        wget https://grafanarel.s3.amazonaws.com/builds/grafana-3.1.0-1468321182.linux-x64.tar.gz -O /src/grafana.tar.gz                                                                    &&\
+        tar -xzf /src/grafana.tar.gz -C /opt/grafana --strip-components=1                 &&\
         rm /src/grafana.tar.gz
+
+# Compile collectd from source in order to change the location of /proc to /host/proc,
+# this assumes the container is launched with -v /proc:/host/proc
+RUN curl https://collectd.org/files/collectd-5.5.0.tar.gz | tar zxf -                    &&\
+    cd collectd*                                                                         &&\
+    ./configure --prefix=/usr --sysconfdir=/etc/collectd --localstatedir=/var --enable-debug &&\
+    grep -rl /proc/ . | xargs sed -i "s/\/proc\//\/host\/proc\//g"                       &&\
+    make all install                                                                     &&\
+    make clean
 
 
 # ----------------- #
@@ -83,6 +95,11 @@ ADD     ./grafana/dashboard-loader/dashboard-loader.js /src/dashboard-loader/
 # Configure nginx and supervisord
 ADD     ./nginx/nginx.conf /etc/nginx/nginx.conf
 ADD     ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Confuration script for collectd
+ADD     ./collectd-configure.sh /root/configure.sh
+RUN chmod +x /root/configure.sh
+RUN mkdir -p /host
 
 
 # ---------------- #
