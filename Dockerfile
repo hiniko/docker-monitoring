@@ -1,4 +1,4 @@
-FROM     ubuntu:latest
+FROM     ubuntu:14.04
 
 # ---------------- #
 #   Installation   #
@@ -85,6 +85,7 @@ RUN     cd /opt/graphite/webapp/graphite && python manage.py syncdb --noinput
 
 # Configure Grafana
 ADD     ./grafana/custom.ini /opt/grafana/conf/custom.ini
+RUN     chown -R www-data:www-data /opt/graphite
 
 # Add the default dashboards
 RUN     mkdir /src/dashboards
@@ -94,12 +95,14 @@ ADD     ./grafana/dashboard-loader/dashboard-loader.js /src/dashboard-loader/
 
 # Configure nginx and supervisord
 ADD     ./nginx/nginx.conf /etc/nginx/nginx.conf
-ADD     ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ADD     ./supervisord/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Confuration script for collectd
-ADD     ./collectd-configure.sh /root/configure.sh
-RUN chmod +x /root/configure.sh
-RUN mkdir -p /host
+ADD     ./collectd/create_collectd_conf.bash /root/create_collectd_conf.bash
+ADD     ./collectd/collectd.env /root/collectd.env
+RUN     chmod +x /root/create_collectd_conf.bash
+RUN     /root/create_collectd_conf.bash /root/collectd.env > /etc/collectd/collectd.conf
+RUN     mkdir -p /host
 
 
 # ---------------- #
