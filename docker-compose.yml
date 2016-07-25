@@ -3,13 +3,10 @@ services:
   graphing:
     build: .
     container_name: niko-graphing
+    privileged: true
+    network_mode: "host"
     environment:
         - HOSTNAME=hume.common.scot
-    ports:
-      - '14000:80'
-      - '14001:81'
-      - '8125:8125/udp'
-      - '8126:8126'
     volumes:
       - ./data/whisper:/opt/graphite/storage/whisper
       - ./data/grafana:/opt/grafana/data
