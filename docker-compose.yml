@@ -2,11 +2,11 @@ version: '2'
 services:
   graphing:
     build: .
-    container_name: niko-graphing
+    container_name: graphing
     privileged: true
     network_mode: "host"
     environment:
-        - HOSTNAME=hume.common.scot
+        - HOSTNAME=graphing
     volumes:
       - ./data/whisper:/opt/graphite/storage/whisper
       - ./data/grafana:/opt/grafana/data

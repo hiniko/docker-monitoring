@@ -1,72 +1,90 @@
-StatsD + Graphite + Grafana 2 + Kamon Dashboards
+Docker Monitor - Monitoring suite for your docker based insfrastucure
 ---------------------------------------------
 
-This image contains a sensible default configuration of StatsD, Graphite and Grafana, and comes bundled with a example
-dashboard that gives you the basic metrics currently collected by Kamon for both Actors and Traces. There are two ways
-for using this image:
+This image contains a suite of software to monitor and graph your docker 
+infrastructure. It intends to be an all in one image you can quickly start to
+get monitoring up with as less hassle as possible (probably).
 
+It contains `colelctd`, `statsd`, `graphite`, `carbon`  and `grafana`.
+It also contains `dashbord-loader` to load dashboards droped in the `grafana`
+directory into a running instance of `grafana`
 
-### Using the Docker Index ###
+The `collectd` instance montiors the host, by passing the host's /proc and using
+the host's network stack.
 
-This image is published under [Kamon's repository on the Docker Hub](https://hub.docker.com/u/kamon/) and all you
-need as a prerequisite is having `docker`, `docker-compose`, and `make` installed on your machine. The container exposes the following ports:
+There is an included grafana dashboard for the collectd instance.
 
-- `80`: the Grafana web interface.
-- `81`: the Graphite web port
-- `8125`: the StatsD port.
-- `8126`: the StatsD administrative port.
+## Configuration  ##
 
-To start a container with this image you just need to run the following command:
+Configuraiton for each of the applicaitons lives in their named folder in this
+repository. 
+
+collectd uses a script at runtime to substitue envrioment variables in to the 
+configuraiton. You can find these variables in the included docker-compose file.
+
+### Building and using the image ###
+
+There is a `docker-compose` file you can use to build and start the image:
+
+`docker-compose build`
+
+Grab a cup of tea. The first build takes a while.  If you change the image you 
+should rebuild it, it will take less time to to chached steps
+
+You also use the following to build and start the image:
+
+`docker-compose up -d`
+
+### Ports ###
+
+The following ports are opened on the host:
+
+* 8000 - Grafana
+* 8001 - Graphite 
+* 8125 - statsd 
+* 8126 - statsd Admin
+* 2003 - carbon data 
+* 2004 - carbon pickle data
+
+## Data  ##
+
+Data is keep on the host in this repo and mounts are passed though to the
+container. Remember to back this up!
+
+## Logging and Management ##
+
+Processes are managed by superviord 
+
+Logs can be found in:
+`/var/log/supervisord/<application>.log`
+
+You can run the superviord shell by running:
 
 ```bash
-$ make up
+$ docker exec -it docker-graphing supervisorctl 
+carbon-cache                     RUNNING    pid 17, uptime 3:42:06 
+collectd                         RUNNING    pid 15, uptime 3:42:06
+dashboard-loader                 RUNNING    pid 19, uptime 3:47:03
+grafana-webapp                   RUNNING    pid 9,  uptime 3:42:06
+graphite-webapp                  RUNNING    pid 11, uptime 3:42:06
+nginx                            RUNNING    pid 16, uptime 3:42:06
+statsd                           RUNNING    pid 10, uptime 3:42:06
 ```
 
-To stop the container
-```bash
-$ make down
-```
+## Acknowledgements ##
 
-To run container's shell
-```bash
-$ make shell
-```
+This image was based off work from the following reops:
 
-To view the container log
-```bash
-$ make tail
-```
+[docker-grafana-graphite](https://github.com/kamon-io/docker-grafana-graphite)
+[collectd-container](https://github.com/rightscale/collectd-container)
+[graphite_docker](https://github.com/SamSaffron/graphite_docker)
 
-If you already have services running on your host that are using any of these ports, you may wish to map the container
-ports to whatever you want by changing left side number in the `--publish` parameters. You can omit ports you do not plan to use. Find more details about mapping ports in the Docker documentation on [Binding container ports to the host](https://docs.docker.com/engine/userguide/networking/default_network/binding/) and [Legacy container links](https://docs.docker.com/engine/userguide/networking/default_network/dockerlinks/).
+Personal work has been put in to include collectd to monitor the host and make
+the default dashboards useful to those not using kamon.
 
+## Author ##
+Sherman Rose <sherman@shermanrose.uk>
 
-### Building the image yourself ###
+## Licence ##
+Licensed under the Apache 2.0 see LICENSE for more details
 
-The Dockerfile and supporting configuration files are available in our [Github repository](https://github.com/kamon-io/docker-grafana-graphite).
-This comes specially handy if you want to change any of the StatsD, Graphite or Grafana settings, or simply if you want
-to know how tha image was built. The repo also has `build` and `start` scripts to make your workflow more pleasant.
-
-
-### Using the Dashboards ###
-
-Once your container is running all you need to do is:
-- open your browser pointing to the host/port you just published
-- login with the default username (admin) and password (admin)
-- configure a new datasource to point at the Graphite metric data (URL - http://localhost:8000) and replace the default Grafana test datasource for your graphs
-- then play with the dashboard at your wish...
-
-
-### Persisted Data ###
-
-When running `make up`, directories are created on your host and mounted into the Docker container, allowing graphite and grafana to persist data and settings between runs of the container.
-
-
-### Now go explore! ###
-
-We hope that you have a lot of fun with this image and that it serves it's
-purpose of making your life easier. This should give you an idea of how the dashboard looks like when receiving data
-from one of our toy applications:
-
-![Kamon Dashboard](http://kamon.io/assets/img/kamon-statsd-grafana.png)
-![System Metrics Dashboard](http://kamon.io/assets/img/kamon-system-metrics.png)
