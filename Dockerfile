@@ -67,6 +67,9 @@ RUN curl https://collectd.org/files/collectd-5.5.0.tar.gz | tar zxf -           
 #   Configuration   #
 # ----------------- #
 
+# Configure Nginx
+ADD     ./nginx/nginx.conf /etc/nginx/sites-enabled/default
+
 # Confiure StatsD
 ADD     ./statsd/config.js /src/statsd/config.js
 
@@ -109,17 +112,17 @@ RUN     mkdir -p /host
 #   Expose Ports   #
 # ---------------- #
 
-# Grafana
-EXPOSE  80
-
-# StatsD UDP port
-EXPOSE  8125/udp
-
-# StatsD Management port
-EXPOSE  8126
-
-# Graphite web port
-EXPOSE 81
+## Grafana
+#EXPOSE  80
+#
+## StatsD UDP port
+#EXPOSE  8125/udp
+#
+## StatsD Management port
+#EXPOSE  8126
+#
+## Graphite web port
+#EXPOSE 81
 
 
 
